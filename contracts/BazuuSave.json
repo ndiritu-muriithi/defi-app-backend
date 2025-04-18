@@ -1,0 +1,65 @@
+{
+    "abi": [
+           {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": true,
+            "name": "user",
+            "type": "address"
+          },
+          {
+            "indexed": false,
+            "name": "amount",
+            "type": "uint256"
+          },
+          {
+            "indexed": false,
+            "name": "timestamp",
+            "type": "uint256"
+          }
+        ],
+        "name": "Deposited",
+        "type": "event"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": true,
+            "name": "user",
+            "type": "address"
+          },
+          {
+            "indexed": false,
+            "name": "amount",
+            "type": "uint256"
+          },
+          {
+            "indexed": false,
+            "name": "timestamp",
+            "type": "uint256"
+          }
+        ],
+        "name": "Withdrawn",
+        "type": "event"
+      },
+      {
+        "inputs": [
+          {
+            "name": "address",
+            "type": "address"
+          }
+        ],
+        "name": "balanceOf",
+        "outputs": [
+          {
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      }
+         ]
+  }

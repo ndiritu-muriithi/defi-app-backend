@@ -1,0 +1,101 @@
+{
+  "name": "bazuusave-api",
+  "version": "1.0.0",
+  "description": "BazuuSave DeFi Savings Application Backend API",
+  "main": "server.js",
+  "author": "ndiritu-muriithi",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "deploy:contract": "npx hardhat run scripts/deploy.js --network base_mainnet",
+    "deploy:contract:testnet": "npx hardhat run scripts/deploy.js --network base_testnet",
+    "verify:contract": "npx hardhat verify --network base_mainnet",
+    "prepare": "husky install"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.0",
+    "axios": "^1.6.2",
+    "bcryptjs": "^2.4.3",
+    "bull": "^4.12.0",
+    "compression": "^1.8.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "ethers": "^6.11.1",
+    "express": "^4.18.2",
+    "express-async-handler": "^1.2.0",
+    "express-rate-limit": "^7.5.0",
+    "express-validator": "^7.0.1",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.0.2",
+    "morgan": "^1.10.0",
+    "path": "^0.12.7",
+    "rate-limit-redis": "^4.2.0",
+    "rate-limiter-flexible": "^7.0.0",
+    "redis": "^4.7.0",
+    "twilio": "^4.19.0",
+    "uuid": "^9.0.1",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.10.1",
+    "eslint": "^8.54.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-prettier": "^5.0.1",
+    "hardhat": "^2.19.1",
+    "husky": "^8.0.3",
+    "jest": "^29.7.0",
+    "lint-staged": "^15.1.0",
+    "nodemon": "^3.0.1",
+    "prettier": "^3.1.0",
+    "supertest": "^6.3.3",
+    "typescript": "^5.3.2"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.js": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coveragePathIgnorePatterns": [
+      "/node_modules/"
+    ],
+    "testTimeout": 10000
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ndiritu-muriithi/defi-app.git"
+  },
+  "keywords": [
+    "defi",
+    "blockchain",
+    "savings",
+    "base",
+    "ethereum",
+    "l2",
+    "web3",
+    "finance",
+    "api"
+  ],
+  "lastUpdated": "2025-04-18 09:24:33 UTC"
+}
