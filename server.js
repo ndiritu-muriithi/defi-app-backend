@@ -15,7 +15,6 @@ require('dotenv').config();
 
 // Import configurations.
 const { connectDB } = require('./config/database');
-const { connectRedis } = require('./config/redis');
 const { setupEventListeners } = require('./services/blockchainservice');
 
 // Import routes
@@ -25,55 +24,21 @@ const savingsRoutes = require('./routes/savingsroutes');
 const notificationRoutes = require('./routes/notificationroutes');
 
 // Import middleware
-const errorHandler = require('./middleware/errorhandler');
-const { standard: apiLimiter } = require('./middleware/ratelimiter');
-const auth = require('./middleware/auth')
-const admin = require('./middleware/admin')
+const { standard: apiLimiter } = require('./middleware/errorhandler');
+const auth = require('./middleware/auth');
+const admin = require('./middleware/admin');
 
 // Initialize express app
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Connect to MongoDB and Redis, then start server
+// Connect to MongoDB and start server
 async function startServer() {
   try {
     // Connect to MongoDB
     await connectDB();
     console.log('MongoDB connected successfully');
 
-    // Connect to Redis
-    await connectRedis();
-    console.log('Redis connected successfully');
-    // Update this section in your server.js file
-
-// Connect to Redis with error handling
-(async () => {
-  try {
-    await redisClient.connect();
-    console.log('Redis connected successfully');
-  } catch (err) {
-    console.error('Redis connection failed:', err.message);
-    console.log('Continuing without Redis - some features may be limited');
-    // Continue application execution even if Redis fails
-  }
-})();
-
-// Then later in your server.js file, modify the listener setup to check if Redis is connected
-const setupServices = async () => {
-  try {
-    // Only setup blockchain listeners if Redis is connected
-    if (redisClient.isReady) {
-      await setupBlockchainListeners();
-      console.log('Blockchain listeners set up successfully');
-    } else {
-      console.log('Skipping blockchain listeners due to Redis connection issues');
-    }
-  } catch (err) {
-    console.error('Failed to setup services:', err);
-  }
-};
-
-setupServices();
     // Setup blockchain event listeners
     await setupEventListeners();
     console.log('Blockchain event listeners setup complete');
@@ -81,9 +46,10 @@ setupServices();
     // Middleware
     app.use(helmet()); // Security headers
     app.use(cors({
-      origin: process.env.CORS_ORIGIN || '*',
+      origin: process.env.CORS_ORIGIN || 'http://localhost:3000', // Your Next.js frontend URL
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization']
+      allowedHeaders: ['Content-Type', 'Authorization'],
+      credentials: true
     }));
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
@@ -98,9 +64,6 @@ setupServices();
     app.use('/api/goals', goalRoutes);
     app.use('/api/savings', savingsRoutes);
     app.use('/api/notifications', notificationRoutes);
-
-    // Error handling
-    app.use(errorHandler);
 
     // Start server
     app.listen(PORT, () => {

@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const goalController = require('../controllers/goalcontroller');
-const auth = require('../middleware/auth');
-const rateLimiter = require('../middleware/ratelimiter');
+const { auth } = require('../middleware/auth');
+const { standard } = require('../middleware/ratelimiter');
 
 // Create new goal
-router.post('/', auth, rateLimiter.standard, goalController.createGoal);
+router.post('/', auth, standard, goalController.createGoal);
 
 // Get all user goals
 router.get('/', auth, goalController.getGoals);
@@ -20,6 +20,6 @@ router.put('/:id', auth, goalController.updateGoal);
 router.delete('/:id', auth, goalController.deleteGoal);
 
 // Contribute to a goal
-router.post('/:id/contribute', auth, goalController.contributeToGoal);
+router.post('/:id/contribute', auth, standard, goalController.contributeToGoal);
 
 module.exports = router; 

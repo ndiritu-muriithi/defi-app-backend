@@ -1,7 +1,10 @@
 const Goal = require('../models/goal');
 const blockchainService = require('../services/blockchainservice');
 const twilioService = require('../services/twilioservice');
-const redis = require('../config/redis');
+
+// In-memory cache for goals
+const goalsCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 /**
  * Create a new goal
@@ -55,6 +58,9 @@ exports.createGoal = async (req, res) => {
       walletAddress
     });
     
+    // Clear cache for this user's goals
+    goalsCache.delete(`goals:${userId}`);
+    
     // Send notification if user has phone number
     if (req.user.phoneNumber) {
       twilioService.sendSMS(
@@ -84,34 +90,36 @@ exports.createGoal = async (req, res) => {
 exports.getGoals = async (req, res) => {
   try {
     const userId = req.user.id;
+    const cacheKey = `goals:${userId}`;
     
     // Try to get from cache first
-    const cacheKey = `goals:${userId}`;
-    const cachedGoals = await redis.get(cacheKey);
-    
-    if (cachedGoals) {
+    const cachedData = goalsCache.get(cacheKey);
+    if (cachedData && Date.now() - cachedData.timestamp < CACHE_TTL) {
       return res.status(200).json({
         success: true,
-        goals: JSON.parse(cachedGoals),
+        goals: cachedData.goals,
         fromCache: true
       });
     }
     
     // Get from database
-    const goals = await Goal.find({ userId }).sort({ createdAt: -1 });
+    const goals = await Goal.find({ userId });
     
-    // Cache for 5 minutes
-    await redis.set(cacheKey, JSON.stringify(goals), 'EX', 300);
+    // Update cache
+    goalsCache.set(cacheKey, {
+      goals,
+      timestamp: Date.now()
+    });
     
     res.status(200).json({
       success: true,
       goals
     });
   } catch (error) {
-    console.error('Error fetching goals:', error);
+    console.error('Error getting goals:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch goals'
+      error: 'Failed to get goals'
     });
   }
 };
@@ -128,10 +136,10 @@ exports.getGoalById = async (req, res) => {
     
     // Try to get from cache first
     const cacheKey = `goal:${id}`;
-    const cachedGoal = await redis.get(cacheKey);
+    const cachedGoal = goalsCache.get(cacheKey);
     
     if (cachedGoal) {
-      const goal = JSON.parse(cachedGoal);
+      const goal = cachedGoal;
       if (goal.userId.toString() === userId.toString()) {
         return res.status(200).json({
           success: true,
@@ -152,7 +160,7 @@ exports.getGoalById = async (req, res) => {
     }
     
     // Cache for 5 minutes
-    await redis.set(cacheKey, JSON.stringify(goal), 'EX', 300);
+    goalsCache.set(cacheKey, goal, CACHE_TTL);
     
     res.status(200).json({
       success: true,
@@ -194,9 +202,8 @@ exports.updateGoal = async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    // Invalidate cache
-    await redis.del(`goal:${id}`);
-    await redis.del(`goals:${userId}`);
+    // Clear cache for this user's goals
+    goalsCache.delete(`goals:${userId}`);
 
     res.status(200).json({
       success: true,
@@ -234,9 +241,8 @@ exports.deleteGoal = async (req, res) => {
     // Delete goal
     await Goal.findByIdAndDelete(id);
     
-    // Invalidate cache
-    await redis.del(`goal:${id}`);
-    await redis.del(`goals:${userId}`);
+    // Clear cache for this user's goals
+    goalsCache.delete(`goals:${userId}`);
     
     res.status(200).json({
       success: true,
@@ -299,9 +305,8 @@ exports.contributeToGoal = async (req, res) => {
       { new: true }
     );
     
-    // Invalidate cache
-    await redis.del(`goal:${id}`);
-    await redis.del(`goals:${userId}`);
+    // Clear cache for this user's goals
+    goalsCache.delete(`goals:${userId}`);
     
     // Send notification if goal completed
     if (newStatus === 'completed' && req.user.phoneNumber) {

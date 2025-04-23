@@ -6,7 +6,6 @@
  */
 
 const twilio = require('twilio');
-const redis = require('../config/redis');
 const User = require('../models/user');
 const NotificationSetting = require('../models/notificationsetting');
 require('dotenv').config();
@@ -35,8 +34,11 @@ if (isTwilioConfigured()) {
 // Rate limiting settings
 const RATE_LIMIT = {
   MAX_SMS_PER_USER_PER_DAY: 5,
-  SMS_RATE_LIMIT_TTL: 24 * 60 * 60 // 24 hours in seconds
+  SMS_RATE_LIMIT_TTL: 24 * 60 * 60 * 1000 // 24 hours in milliseconds
 };
+
+// In-memory rate limit storage
+const smsRateLimits = new Map();
 
 // Message templates
 const MESSAGE_TEMPLATES = {
@@ -73,22 +75,33 @@ const MESSAGE_TEMPLATES = {
  */
 const checkRateLimit = async (userId) => {
   try {
-    const key = `sms_count:${userId}`;
-    const count = await redis.getCache(key);
+    const now = Date.now();
+    const userLimit = smsRateLimits.get(userId);
     
-    if (count === null) {
+    if (!userLimit) {
       // No count yet, set to 1
-      await redis.setCache(key, '1', RATE_LIMIT.SMS_RATE_LIMIT_TTL);
+      smsRateLimits.set(userId, {
+        count: 1,
+        resetTime: now + RATE_LIMIT.SMS_RATE_LIMIT_TTL
+      });
       return false;
     }
     
-    const smsCount = parseInt(count, 10);
-    if (smsCount >= RATE_LIMIT.MAX_SMS_PER_USER_PER_DAY) {
+    // Check if rate limit window has expired
+    if (now > userLimit.resetTime) {
+      smsRateLimits.set(userId, {
+        count: 1,
+        resetTime: now + RATE_LIMIT.SMS_RATE_LIMIT_TTL
+      });
+      return false;
+    }
+    
+    if (userLimit.count >= RATE_LIMIT.MAX_SMS_PER_USER_PER_DAY) {
       return true;
     }
     
     // Increment count
-    await redis.setCache(key, (smsCount + 1).toString(), RATE_LIMIT.SMS_RATE_LIMIT_TTL);
+    userLimit.count++;
     return false;
   } catch (error) {
     console.error('Error checking SMS rate limit:', error);

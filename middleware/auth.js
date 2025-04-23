@@ -7,8 +7,10 @@
 
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
-const redis = require('../config/redis');
 require('dotenv').config();
+
+// In-memory token blacklist
+const tokenBlacklist = new Set();
 
 /**
  * Authentication middleware
@@ -36,8 +38,7 @@ const auth = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
     // Check if token is blacklisted
-    const isBlacklisted = await redis.getCache(`blacklist_token:${token}`);
-    if (isBlacklisted) {
+    if (tokenBlacklist.has(token)) {
       return res.status(401).json({
         success: false,
         error: 'Token has been revoked.'
@@ -98,4 +99,10 @@ const auth = async (req, res, next) => {
   }
 };
 
-module.exports = auth;
+// Export auth middleware and blacklist management functions
+module.exports = {
+  auth,
+  blacklistToken: (token) => tokenBlacklist.add(token),
+  isTokenBlacklisted: (token) => tokenBlacklist.has(token),
+  clearBlacklist: () => tokenBlacklist.clear()
+};

@@ -1,85 +1,115 @@
 /**
  * Rate Limiter Middleware
  * Limits request rates to prevent abuse
- * 
  *
  */
 const rateLimit = require('express-rate-limit');
-const { RateLimiterRedis } = require('rate-limiter-flexible');
-const RedisStore = require('rate-limit-redis');
-const redisClient = require('../config/redis');
 
-// Create a fallback limiter that doesn't use Redis
-const createMemoryLimiter = (max, windowMinutes) => {
+// Create rate limiters with different configurations
+const standard = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: 'Too many requests, please try again later.'
+  }
+});
+
+const strict = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // Limit each IP to 20 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: 'Too many requests, please try again later.'
+  }
+});
+
+const login = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 login attempts per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: 'Too many login attempts, please try again after 15 minutes.'
+  }
+});
+
+const passwordReset = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3, // Limit each IP to 3 password reset attempts per hour
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: 'Too many password reset attempts, please try again after 1 hour.'
+  }
+});
+
+const transaction = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10, // Limit each IP to 10 transactions per hour
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: 'Too many transaction attempts, please try again after 1 hour.'
+  }
+});
+
+const sms = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000, // 24 hours
+  max: 5, // Limit each IP to 5 SMS requests per day
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: 'SMS request limit reached, please try again tomorrow.'
+  }
+});
+
+const api = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 1000, // Limit each IP to 1000 requests per hour
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: 'API rate limit exceeded, please try again later.'
+  }
+});
+
+/**
+ * Create a custom rate limiter
+ * @param {number} max - Maximum number of requests
+ * @param {number} windowMs - Time window in milliseconds
+ * @param {string} message - Custom error message
+ * @returns {Object} Rate limiter middleware
+ */
+const createLimiter = (max = 100, windowMs = 15 * 60 * 1000, message = 'Rate limit exceeded') => {
   return rateLimit({
+    windowMs,
     max,
-    windowMs: windowMinutes * 60 * 1000,
-    message: { status: 'error', message: 'Too many requests, please try again later.' }
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      success: false,
+      error: message
+    }
   });
 };
 
-// Create Redis store only if Redis is connected
-let limiterStore;
-try {
-  if (redisClient.isReady) {
-    limiterStore = new RedisStore({
-      // redis instance
-      sendCommand: (...args) => redisClient.sendCommand(args),
-    });
-    console.log('Rate limiter using Redis store');
-  } else {
-    console.log('Rate limiter using memory store (Redis not connected)');
-  }
-} catch (err) {
-  console.error('Error setting up Redis rate limiter:', err);
-}
-
-// Define your rate limiters
-exports.apiLimiter = limiterStore 
-  ? rateLimit({
-      store: limiterStore,
-      max: 100,
-      windowMs: 15 * 60 * 1000,
-      message: { status: 'error', message: 'Too many requests, please try again later.' }
-    })
-  : createMemoryLimiter(100, 15);
-
-// Authentication rate limiter (stricter)
-exports.authLimiter = limiterStore
-  ? rateLimit({
-      store: limiterStore,
-      max: 5, // 5 attempts
-      windowMs: 15 * 60 * 1000, // per 15 minutes
-      message: { status: 'error', message: 'Too many login attempts, please try again later.' }
-    })
-  : createMemoryLimiter(5, 15);
-
-// Registration rate limiter (very strict)
-exports.registerLimiter = limiterStore
-  ? rateLimit({
-      store: limiterStore,
-      max: 3, // 3 attempts
-      windowMs: 60 * 60 * 1000, // per hour
-      message: { status: 'error', message: 'Too many registration attempts, please try again later.' }
-    })
-  : createMemoryLimiter(3, 60);
-
-// Transaction rate limiter
-exports.transactionLimiter = limiterStore
-  ? rateLimit({
-      store: limiterStore,
-      max: 10, // 10 transactions
-      windowMs: 60 * 60 * 1000, // per hour
-      message: { status: 'error', message: 'Too many transaction requests, please try again later.' }
-    })
-  : createMemoryLimiter(10, 60);
-
-// SMS rate limiter
-exports.smsLimiter = limiterStore
-  ? rateLimit({
-      store: limiterStore,
-      max: 5, // 5 SMS
-      windowMs: 24 * 60 * 60 * 1000, // per day
-      message: { status: 'error', message: 'SMS sending limit reached, please try again tomorrow.' }
-    })
-  : createMemoryLimiter(5, 24 * 60);
+module.exports = {
+  standard,
+  strict,
+  login,
+  passwordReset,
+  transaction,
+  sms,
+  api,
+  createLimiter
+};

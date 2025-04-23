@@ -1,7 +1,10 @@
 const User = require('../models/user');
 const Transaction = require('../models/transaction');
 const blockchainService = require('../services/blockchainservice');
-const redis = require('../config/redis');
+
+// In-memory cache for balances
+const balanceCache = new Map();
+const CACHE_TTL = 60 * 1000; // 1 minute in milliseconds
 
 /**
  * Get user's savings balance
@@ -13,13 +16,11 @@ exports.getBalance = async (req, res) => {
     const { address } = req.params;
     
     // Try to get from cache first
-    const cacheKey = `balance:${address}`;
-    const cachedBalance = await redis.get(cacheKey);
-    
-    if (cachedBalance) {
+    const cachedData = balanceCache.get(address);
+    if (cachedData && Date.now() - cachedData.timestamp < CACHE_TTL) {
       return res.status(200).json({
         success: true,
-        balance: JSON.parse(cachedBalance),
+        balance: cachedData.balance,
         fromCache: true
       });
     }
@@ -27,8 +28,11 @@ exports.getBalance = async (req, res) => {
     // Get balance from blockchain
     const balance = await blockchainService.getBalance(address);
     
-    // Cache for 1 minute
-    await redis.set(cacheKey, JSON.stringify(balance), 'EX', 60);
+    // Update cache
+    balanceCache.set(address, {
+      balance,
+      timestamp: Date.now()
+    });
     
     res.status(200).json({
       success: true,
@@ -67,8 +71,8 @@ exports.depositCrypto = async (req, res) => {
       walletAddress
     });
     
-    // Invalidate balance cache
-    await redis.del(`balance:${walletAddress}`);
+    // Clear balance cache
+    balanceCache.delete(walletAddress);
     
     res.status(200).json({
       success: true,
@@ -102,7 +106,7 @@ exports.depositMpesa = async (req, res) => {
       type: 'deposit',
       amount,
       status: 'pending',
-      mpesaRequestId: result.requestId,
+      paymentId: result.paymentId,
       phoneNumber
     });
     
@@ -149,8 +153,8 @@ exports.mpesaCallback = async (req, res) => {
       // Deposit to blockchain
       await blockchainService.deposit(user.privateKey, amount);
       
-      // Invalidate balance cache
-      await redis.del(`balance:${user.walletAddress}`);
+      // Clear balance cache
+      balanceCache.delete(user.walletAddress);
     } else {
       // Update transaction status
       transaction.status = 'failed';
@@ -194,8 +198,8 @@ exports.withdraw = async (req, res) => {
       destinationAddress: address
     });
     
-    // Invalidate balance cache
-    await redis.del(`balance:${walletAddress}`);
+    // Clear balance cache
+    balanceCache.delete(walletAddress);
     
     res.status(200).json({
       success: true,
@@ -239,8 +243,8 @@ exports.withdrawToMpesa = async (req, res) => {
       phoneNumber
     });
     
-    // Invalidate balance cache
-    await redis.del(`balance:${walletAddress}`);
+    // Clear balance cache
+    balanceCache.delete(walletAddress);
     
     res.status(200).json({
       success: true,

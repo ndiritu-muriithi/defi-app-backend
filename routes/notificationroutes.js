@@ -8,80 +8,78 @@
 const express = require('express');
 const router = express.Router();
 const notificationController = require('../controllers/notificationController');
-const auth = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 const admin = require('../middleware/admin');
-const { standard: rateLimiter } = require('../middleware/ratelimiter');
+const { standard, sms } = require('../middleware/ratelimiter');
 
 /**
  * @route   GET /api/notifications
  * @desc    Get user notifications with optional pagination and filters
  * @access  Private
  */
-router.get('/', auth, notificationController.getNotifications);
+router.get('/', auth, standard, notificationController.getNotifications);
 
 /**
  * @route   GET /api/notifications/unread-count
  * @desc    Get count of unread notifications
  * @access  Private
  */
-router.get('/unread-count', auth, notificationController.getUnreadCount);
+router.get('/unread-count', auth, standard, notificationController.getUnreadCount);
 
 /**
  * @route   PUT /api/notifications/:id/read
  * @desc    Mark notification as read
  * @access  Private
  */
-router.put('/:id/read', auth, notificationController.markAsRead);
+router.patch('/:id/read', auth, standard, notificationController.markAsRead);
 
 /**
  * @route   PUT /api/notifications/mark-all-read
  * @desc    Mark all notifications as read
  * @access  Private
  */
-router.put('/mark-all-read', auth, notificationController.markAllAsRead);
+router.patch('/read-all', auth, standard, notificationController.markAllAsRead);
 
 /**
  * @route   DELETE /api/notifications/:id
  * @desc    Delete notification
  * @access  Private
  */
-router.delete('/:id', auth, notificationController.deleteNotification);
+router.delete('/:id', auth, standard, notificationController.deleteNotification);
 
 /**
  * @route   DELETE /api/notifications
  * @desc    Delete all notifications
  * @access  Private
  */
-router.delete('/', auth, notificationController.deleteAllNotifications);
+router.delete('/', auth, standard, notificationController.deleteAllNotifications);
 
 /**
  * @route   GET /api/notifications/settings
  * @desc    Get notification settings
  * @access  Private
  */
-router.get('/settings', auth, notificationController.getNotificationSettings);
+router.get('/settings', auth, standard, notificationController.getNotificationSettings);
 
 /**
  * @route   PUT /api/notifications/settings
  * @desc    Update notification settings
  * @access  Private
  */
-router.put('/settings', auth, notificationController.updateNotificationSettings);
+router.put('/settings', auth, standard, notificationController.updateNotificationSettings);
 
 /**
  * @route   POST /api/notifications/test-sms
  * @desc    Send test SMS notification
  * @access  Private
- * @note    Rate limited to prevent abuse
  */
-router.post('/test-sms', auth, rateLimiter, notificationController.sendTestSms);
+router.post('/test-sms', auth, sms, notificationController.sendTestSms);
 
 /**
  * @route   POST /api/notifications/system
- * @desc    Create system notification for user(s)
+ * @desc    Create system notification
  * @access  Admin
- * @note    Only accessible to admin users
  */
-router.post('/system', [auth, admin], notificationController.createSystemNotification);
+router.post('/system', auth, admin, standard, notificationController.createSystemNotification);
 
 module.exports = router;

@@ -5,3 +5,22 @@ debug
 node_modules
 >>>>>>> bfed6ed3 (Firs edit of backend)
 node_modules
+# Environment files
+.env
+.env.local
+
+# Logs
+*.log
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Dependency directories
+node_modules/
+venv/
+__pycache__/
+
+# IDE files
+.vscode/
+.idea/

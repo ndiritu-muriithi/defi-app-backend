@@ -1,7 +1,10 @@
 const Notification = require('../models/notification');
 const NotificationSetting = require('../models/notificationsetting');
 const twilioService = require('../services/twilioservice');
-const redis = require('../config/redis');
+
+// In-memory cache for unread counts
+const unreadCountCache = new Map();
+const CACHE_TTL = 60 * 1000; // 1 minute in milliseconds
 
 /**
  * Get user notifications
@@ -57,13 +60,11 @@ exports.getUnreadCount = async (req, res) => {
     const userId = req.user.id;
     
     // Try to get from cache first
-    const cacheKey = `unread_count:${userId}`;
-    const cachedCount = await redis.get(cacheKey);
-    
-    if (cachedCount) {
+    const cachedData = unreadCountCache.get(userId);
+    if (cachedData && Date.now() - cachedData.timestamp < CACHE_TTL) {
       return res.status(200).json({
         success: true,
-        count: Number(cachedCount),
+        count: cachedData.count,
         fromCache: true
       });
     }
@@ -74,8 +75,11 @@ exports.getUnreadCount = async (req, res) => {
       read: false
     });
     
-    // Cache for 1 minute
-    await redis.set(cacheKey, count.toString(), 'EX', 60);
+    // Update cache
+    unreadCountCache.set(userId, {
+      count,
+      timestamp: Date.now()
+    });
     
     res.status(200).json({
       success: true,
@@ -100,7 +104,7 @@ exports.markAsRead = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
     
-    // Find and update notification
+    // Update notification
     const notification = await Notification.findOneAndUpdate(
       { _id: id, userId },
       { read: true },
@@ -114,8 +118,8 @@ exports.markAsRead = async (req, res) => {
       });
     }
     
-    // Invalidate cache
-    await redis.del(`unread_count:${userId}`);
+    // Clear unread count cache
+    unreadCountCache.delete(userId);
     
     res.status(200).json({
       success: true,
@@ -145,8 +149,8 @@ exports.markAllAsRead = async (req, res) => {
       { read: true }
     );
     
-    // Invalidate cache
-    await redis.del(`unread_count:${userId}`);
+    // Clear unread count cache
+    unreadCountCache.delete(userId);
     
     res.status(200).json({
       success: true,
@@ -184,8 +188,8 @@ exports.deleteNotification = async (req, res) => {
       });
     }
     
-    // Invalidate cache
-    await redis.del(`unread_count:${userId}`);
+    // Clear unread count cache
+    unreadCountCache.delete(userId);
     
     res.status(200).json({
       success: true,
@@ -212,8 +216,8 @@ exports.deleteAllNotifications = async (req, res) => {
     // Delete all notifications
     await Notification.deleteMany({ userId });
     
-    // Invalidate cache
-    await redis.del(`unread_count:${userId}`);
+    // Clear unread count cache
+    unreadCountCache.delete(userId);
     
     res.status(200).json({
       success: true,
