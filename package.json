@@ -30,20 +30,21 @@
     "compression": "^1.8.0",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
-    "ethers": "^6.11.1",
+    "ethers": "^6.13.5",
     "express": "^4.21.2",
     "express-async-handler": "^1.2.0",
     "express-rate-limit": "^7.5.0",
     "express-validator": "^7.0.1",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.16.0",
     "mongoose": "^8.0.2",
     "morgan": "^1.10.0",
     "path": "^0.12.7",
     "rate-limit-redis": "^4.2.0",
     "rate-limiter-flexible": "^7.0.0",
     "redis": "^4.7.0",
-    "twilio": "^4.19.0",
+    "twilio": "^4.23.0",
     "uuid": "^9.0.1",
     "winston": "^3.11.0"
   },
@@ -84,7 +85,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ndiritu-muriithi/defi-app.git"
+    "url": "git+https://github.com/ndiritu-muriithi/defi-app.git"
   },
   "keywords": [
     "defi",
@@ -97,5 +98,9 @@
     "finance",
     "api"
   ],
-  "lastUpdated": "2025-04-18 09:24:33 UTC"
+  "lastUpdated": "2025-04-18 09:24:33 UTC",
+  "bugs": {
+    "url": "https://github.com/ndiritu-muriithi/defi-app/issues"
+  },
+  "homepage": "https://github.com/ndiritu-muriithi/defi-app#readme"
 }

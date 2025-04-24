@@ -5,10 +5,6 @@ debug
 node_modules
 >>>>>>> bfed6ed3 (Firs edit of backend)
 node_modules
-# Environment files
-.env
-.env.local
-
 # Logs
 *.log
 

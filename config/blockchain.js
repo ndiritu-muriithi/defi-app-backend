@@ -7,21 +7,36 @@ const BazuuSaveABI = require('../contracts/BazuuSave.json').abi;
 require('dotenv').config();
 
 // Environment variables for blockchain configuration
-const BASE_RPC_URL = process.env.BASE_RPC_URL || 'https://mainnet.base.org';
-const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS;
+const BASE_RPC_URL = process.env.BASE_RPC_URL || 'https://base-sepolia.g.alchemy.com/v2/Jk-Hl9K5MhwP0Hj7Mbb9rVAneQnk9Asi';
+const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS || '0x38A757586055C9aC18C650Ea68EEfAaFEe935C6a';
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 
 // Create provider based on the Base L2 RPC URL
 const provider = new ethers.JsonRpcProvider(BASE_RPC_URL);
 
 // Create signer from private key (for transactions that need signing)
-const signer = new ethers.Wallet(PRIVATE_KEY, provider);
+let signer;
+try {
+  if (!PRIVATE_KEY) {
+    throw new Error('PRIVATE_KEY is not defined in environment variables');
+  }
+  if (PRIVATE_KEY === 'your_private_key') {
+    throw new Error('Please replace the placeholder private key in your .env file with your actual private key');
+  }
+  // Add 0x prefix if not present
+  const formattedPrivateKey = PRIVATE_KEY.startsWith('0x') ? PRIVATE_KEY : `0x${PRIVATE_KEY}`;
+  signer = new ethers.Wallet(formattedPrivateKey, provider);
+} catch (error) {
+  console.error('Error creating signer:', error.message);
+  console.log('Running in read-only mode. Some features may be limited.');
+  signer = null;
+}
 
 // Create contract instance
 const bazuuSaveContract = new ethers.Contract(
   CONTRACT_ADDRESS,
   BazuuSaveABI,
-  signer
+  signer || provider
 );
 
 // Read-only contract instance (for queries that don't need signing)
@@ -42,7 +57,7 @@ const USDC_ABI = [
 ];
 
 // USDC contract instance
-const usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, signer);
+const usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, signer || provider);
 
 // Configure gas settings
 const gasSettings = {

@@ -15,20 +15,36 @@ const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
 const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER;
 
+// Debug logging for Twilio configuration
+console.log('Twilio Configuration Status:');
+console.log('TWILIO_ACCOUNT_SID:', TWILIO_ACCOUNT_SID ? 'Present' : 'Missing');
+console.log('TWILIO_AUTH_TOKEN:', TWILIO_AUTH_TOKEN ? 'Present' : 'Missing');
+console.log('TWILIO_PHONE_NUMBER:', TWILIO_PHONE_NUMBER ? 'Present' : 'Missing');
+
 // Check if Twilio credentials are valid
 const isTwilioConfigured = () => {
-  return TWILIO_ACCOUNT_SID && 
-         TWILIO_ACCOUNT_SID.startsWith('AC') && 
-         TWILIO_AUTH_TOKEN && 
-         TWILIO_PHONE_NUMBER;
+  const configured = TWILIO_ACCOUNT_SID && 
+                    TWILIO_ACCOUNT_SID.startsWith('AC') && 
+                    TWILIO_AUTH_TOKEN && 
+                    TWILIO_PHONE_NUMBER;
+  
+  console.log('Twilio is fully configured:', configured);
+  return configured;
 };
 
 // Create Twilio client only if credentials are valid
 let client;
 if (isTwilioConfigured()) {
-  client = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+  try {
+    client = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+    console.log('Twilio client initialized successfully');
+  } catch (error) {
+    console.error('Error initializing Twilio client:', error.message);
+    client = null;
+  }
 } else {
-  console.warn('Twilio credentials not configured. SMS notifications will be disabled.');
+  console.log('Twilio client not initialized due to missing or invalid credentials');
+  client = null;
 }
 
 // Rate limiting settings
