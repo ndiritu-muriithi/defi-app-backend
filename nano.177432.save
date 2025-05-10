@@ -1,0 +1,4 @@
+diritu\.cursor-server\bin\ec408037b24566b11e6132c58bbe6ad27046eb90\out\vs\workbench\contrib\terminal\common\scripts\shellIntegration-bash.sh"
+
+mkdir -p ssl && openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ssl/nginx.key -out ssl/nginx.crt -subj "/CN=localhost"
+

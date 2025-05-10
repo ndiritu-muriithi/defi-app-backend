@@ -1,8 +1,3 @@
-/**
- * BazuuSave API Server
- * Main entry point for the BazuuSave DeFi application backend
- * 
- */
 
 // Import dependencies
 const express = require('express');
@@ -46,7 +41,7 @@ async function startServer() {
     // Middleware
     app.use(helmet()); // Security headers
     app.use(cors({
-      origin: process.env.CORS_ORIGIN || 'http://localhost:3000', // Your Next.js frontend URL
+      origin: process.env.CORS_ORIGIN || 'http://localhost:3000', // Your frontend URL
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization'],
       credentials: true
@@ -65,6 +60,11 @@ async function startServer() {
     app.use('/api/savings', savingsRoutes);
     app.use('/api/notifications', notificationRoutes);
 
+    // ✅ Add root route to fix "Cannot GET /" error
+    app.get('/', (req, res) => {
+      res.send('Welcome to BazuuSave API!');
+    });
+
     // Start server
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
@@ -77,18 +77,5 @@ async function startServer() {
 
 // Start the server
 startServer();
-
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err) => {
-  console.error('UNHANDLED REJECTION! 💥 Shutting down...');
-  console.error(err.name, err.message);
-  process.exit(1);
-});
-
-// Handle SIGTERM
-process.on('SIGTERM', () => {
-  console.log('👋 SIGTERM RECEIVED. Shutting down gracefully');
-  process.exit(0);
-});
 
 module.exports = app; // For testing purposes
